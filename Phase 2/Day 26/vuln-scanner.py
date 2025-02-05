@@ -14,10 +14,17 @@ class DomainScanner:
 
     def checkPort (self, port):
         with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as sock:
-            sock.settimeout(2)
-            return sock.connect_ex((self.domain, port)) == 0
+            try:
+                sock.settimeout(2)
+                return sock.connect_ex((self.domain, port)) == 0
+            except Exception as e:
+                self.log(f"  - Port {port} Scan Failed: {e}")
 
     def __init__ (self, domain):
+        domain = domain.lower()
+        domain = re.sub(r'https?://', '', domain)
+        domain = domain.split('/')[0]
+        domain = domain.split(':')[0]
         self.domain = domain
         domainSanitised = re.sub(r'[^a-zA-Z0-9-]', '_', domain)
         self.scanResult = f"Scan Results for {domainSanitised}.txt"
@@ -39,12 +46,16 @@ class DomainScanner:
             ]
         for port in ports:
             with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as sock:
-                sock.settimeout(2)
-                result = sock.connect_ex((self.domain, port))
-                if result == 0:
-                    self.log(f"  - Port {port} is OPEN")
-                else:
-                    print(f"  - Port {port} is CLOSED")
+                try:
+                    sock.settimeout(2)
+                    result = sock.connect_ex((self.domain, port))
+                    if result == 0:
+                        self.log(f"  - Port {port} is OPEN")
+                    else:
+                        print(f"  - Port {port} is CLOSED")
+                except Exception as e:
+                    self.log(f"  - Port {port} Scan Failed: {e}")
+                    
 
     def checkSSL(self):
         self.log("\n[+] Checking SSL Certificate...\n")
