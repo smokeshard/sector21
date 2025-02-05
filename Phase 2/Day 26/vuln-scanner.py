@@ -3,6 +3,8 @@ import http.client
 import re
 import socket
 import ssl
+import urllib.parse
+import base64
 
 class DomainScanner:
     def log(self, message):
@@ -40,6 +42,9 @@ class DomainScanner:
 
     def checkSSL(self):
         self.log("\n[+] Checking SSL Certificate...\n")
+        if not self.is_port_open(443):
+            self.log("  - Port 443 is CLOSED. Skipping SSL Check.")
+            return
         try:
             ctx = ssl.create_default_context()
             with ctx.wrap_socket(socket.socket(), server_hostname=self.domain) as sock:
@@ -52,6 +57,9 @@ class DomainScanner:
     
     def checkHTTPHeaders(self):
         self.log("\n[+] Checking HTTP Headers...\n")
+        if not self.is_port_open(443):
+            self.log("  - Port 443 is CLOSED. Skipping HTTPS Headers Check.")
+            return
         try:
             connection = http.client.HTTPSConnection(self.domain)
             connection.request("GET", "/")
@@ -64,25 +72,151 @@ class DomainScanner:
             self.log(f"  - HTTP Headers Check Failed: {e}")
     
     def checkXSS(self):
-        self.log("\n[+] Checking for Cross-site Scripting...\n")
-        payload = "<script>alert('XSS')</script>"
+        self.log("\n[+] Checking for Cross-site Scripting Vulnerabilities...\n")
+        payloads = [
+            "<script>alert('XSS')</script>",
+            "<img src=x onerror=alert('XSS')>",
+            "<svg onload=alert('XSS')>",
+            "javascript:alert('XSS')",
+            "&#106;&#97;&#118;&#97;&#115;&#99;&#114;&#105;&#112;&#116;&#58;&#97;&#108;&#101;&#114;&#116;&#40;&#39;&#88;&#83;&#83;&#39;&#41;",
+            base64.b64encode("<script>alert('XSS')</script>".encode()).decode(),
+            "<ScRiPt>alert('XSS')</ScRiPt>",
+            "<SCRIPT>alert('XSS');</SCRIPT>",
+            "<scr<script>ipt>alert('XSS')</scr</script>ipt>",
+            "' onmouseover='alert('XSS')",
+            "\" onmouseover=\"alert('XSS')",
+            "' onfocus='alert('XSS')",
+            "\"><iframe src=\"javascript:alert('XSS')\">",
+            "\"><video><source onerror=\"alert('XSS')\">",
+            "';alert('XSS')//",
+            "\";alert('XSS')//",
+            "><script>alert(String.fromCharCode(88,83,83))</script>",
+            "javascript:/*-/*`/*\`/*'/*\"/**/(/* */onerror=alert('XSS') )//%0D%0A%0d%0a//</stYle/</titLe/</teXtarEa/</scRipt/--!>\\x3csVg/<sVg/oNloAd=alert('XSS')//>\x3e"
+        ]
+        contexts = [
+            ("/?q={}", "GET"),
+            ("/search?query={}", "GET"),
+            ("/login?username={}&password=test", "POST"),
+            ("/comment?text={}", "POST")
+        ]
+        patterns = [
+            "customAlert",
+            "sanitize",
+            "escapeHTML",
+            "innerHTML",
+            "document.write"
+        ]
+        headers = {
+            "User-Agent": "Mozilla/5.0",
+            "Content-Type": "application/x-www-form-urlencoded",
+            "X-Requested-With": "XMLHttpRequest"
+        }
+        for payload in payloads:
+            for template, method in contexts:
+                try:
+                    payloadEncoded = urllib.parse.quote(payload)
+                    path = template.format(payloadEncoded)
+                    connection = http.client.HTTPConnection(self.domain)
+                    if method == "GET":
+                        connection.request(method, path, headers=headers)
+                    else:
+                        body = f"data={payloadEncoded}"
+                        connection.request(method, path, body=body, headers=headers)
+                    response = connection.getresponse()
+                    content = response.read().decode(errors="ignore")
+                    connection.close()
+                    if payload in content or payloadEncoded in content:
+                        self.log(f"  - Potential XSS (Reflected) Found!\n    Path: {path}\n    Method: {method}\n    Payload: {payload}")
+                    if "alert" not in content and "XSS" in content:
+                        self.log(f"  - Potential Filter Bypass Found!\n    Path: {path}\n    Method: {method}\n    Payload: {payload}")
+                    for pattern in patterns:
+                        if pattern in content:
+                            self.log(f"  - Suspicious Pattern Found: {pattern}\n    Path: {path}\n    Method: {method}")
+                except Exception as e:
+                    self.log(f"  - XSS Test Failed: {e}\n    Path: {path}\n    Method: {method}")
+
+    def checkCSRF(self):
+        self.log(f"\n[+] Checking for Basic Cross-Site Request Forgery...\n")
         try:
             connection = http.client.HTTPConnection(self.domain)
-            connection.request("GET", f"/?q={payload}")
-            response = connection.getresponse().read().decode(errors="ignore")
+            connection.request("GET", "/")
+            response = connection.getresponse()
+            headers = response.getheaders()
             connection.close()
-            if payload in response:
-                self.log("  - Potential XSS Vulnerability Found!")
-            else:
-                self.log("  - No XSS Vulnerability Detected.")
+            content = response.read().decode(errors="ignore")
+            CSRFHeaders = ["X-CSRF-Token", "CSRF-Token", "X-XSRF-Token",]
+            CSRFPatterns = [
+                r'<input[^>]*type=["\']hidden["\'][^>]*name=["\']csrf[^"\']*["\']',
+                r'<input[^>]*name=["\']csrf[^"\']*["\'][^>]*type=["\']hidden["\']', 
+                r'<meta[^>]*name=["\']csrf-token["\']',
+            ]
+            for header in CSRFHeaders:
+                if header in headers:
+                    csrf = True
+                    self.log(f"  - Found CSRF Protection Header: {header}")
+                else:
+                    csrf = False
+            for pattern in CSRFPatterns:
+                if re.search(pattern, content, re.IGNORECASE):
+                    csrf = True
+                    self.log("  - Found CSRF Token in Form")
+                else:
+                    csrf = False
+            if csrf == False:
+                self.log("  - No CSRF Protection Detected!")
         except Exception as e:
-            self.log(f"  - XSS Test Failed: {e}")
+            self.log(f"  - CSRF Check Failed: {e}")
+
+    def checkSQLInjection(self):
+        self.log("\n[+] Checking for Basic SQL Injection Vulnerabilities...\n")
+        payloads = [
+            "' OR '1'='1",
+            "1' OR '1'='1",
+            "1 OR 1=1",
+            "' --",
+            "1' --",
+            "' UNION SELECT NULL--",
+            "admin' --"
+        ]
+        patterns = [
+            "sql",
+            "mysql",
+            "oracle",
+            "syntax error",
+            "postgresql",
+            "sqlite",
+            "database error"
+        ]
+        for payload in payloads:
+            try:
+                sql = False
+                payloadEncoded = urllib.parse.quote(payload)
+                connection = http.client.HTTPConnection(self.domain)
+                connection.request("GET", f"/?id={payloadEncoded}")
+                response = connection.getresponse()
+                content = response.read().decode(errors="ignore").lower()
+                connection.close()
+                for pattern in patterns:
+                    if pattern in content:
+                        self.log(f"  - Potential SQL Injection Found with Payload: {payload}")
+                        self.log(f"  - Detected Database Error Pattern: {pattern}")
+                        sql = True
+                if response.status == 500:
+                    self.log(f"  - Potential SQL Injection Found! Server Error with Payload: {payload}")
+                    sql = True
+            except Exception as e:
+                self.log(f"  - SQL Injection Test Failed for Payload {payload}: {e}")
+        if sql == False:
+            self.log("  - No Obvious SQL Injection Vulnerabilities Detected.")
+
 
     def runScan(self):
         self.portScanning()
         self.checkSSL()
         self.checkHTTPHeaders()
         self.checkXSS()
+        self.checkCSRF()
+        self.checkSQLInjection()
         self.log(f"\n=====\n\nScanning Completed at {datetime.datetime.now()}")
 
 if __name__ == "__main__":
