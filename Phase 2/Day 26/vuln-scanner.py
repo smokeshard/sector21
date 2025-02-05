@@ -12,6 +12,11 @@ class DomainScanner:
             log.write(message + "\n")
         print(message)
 
+    def checkPort (self, port):
+        with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as sock:
+            sock.settimeout(2)
+            return sock.connect_ex((self.domain, port)) == 0
+
     def __init__ (self, domain):
         self.domain = domain
         self.scanResult = f"Scan Results for {domain}.txt"
@@ -42,7 +47,7 @@ class DomainScanner:
 
     def checkSSL(self):
         self.log("\n[+] Checking SSL Certificate...\n")
-        if not self.is_port_open(443):
+        if not self.checkPort(443):
             self.log("  - Port 443 is CLOSED. Skipping SSL Check.")
             return
         try:
@@ -57,7 +62,7 @@ class DomainScanner:
     
     def checkHTTPHeaders(self):
         self.log("\n[+] Checking HTTP Headers...\n")
-        if not self.is_port_open(443):
+        if not self.checkPort(443):
             self.log("  - Port 443 is CLOSED. Skipping HTTPS Headers Check.")
             return
         try:
