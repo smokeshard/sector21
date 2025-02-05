@@ -1,0 +1,40 @@
+Scan for 'google.com' Started at 2025-02-06 03:17:22.995529
+
+=====
+
+[+] Performing Port Scan...
+
+Scan for 'google.com' Started at 2025-02-06 03:20:23.659810
+
+=====
+
+[+] Performing Port Scan...
+
+  - Port 80 is OPEN
+  - Port 443 is OPEN
+
+[+] Checking SSL Certificate...
+
+  - SSL Certificate Valid Until: Apr 14 08:36:03 2025 GMT
+
+[+] Checking HTTP Headers...
+
+  - Location: https://www.google.com/
+  - Content-Type: text/html; charset=UTF-8
+  - Content-Security-Policy-Report-Only: object-src 'none';base-uri 'self';script-src 'nonce-WZVSgsRF3Akp1MezfRhhIQ' 'strict-dynamic' 'report-sample' 'unsafe-eval' 'unsafe-inline' https: http:;report-uri https://csp.withgoogle.com/csp/gws/other-hp
+  - Date: Wed, 05 Feb 2025 21:55:46 GMT
+  - Expires: Fri, 07 Mar 2025 21:55:46 GMT
+  - Cache-Control: public, max-age=2592000
+  - Server: gws
+  - Content-Length: 220
+  - X-XSS-Protection: 0
+  - X-Frame-Options: SAMEORIGIN
+  - Alt-Svc: h3=":443"; ma=2592000,h3-29=":443"; ma=2592000
+
+[+] Checking for Cross-site Scripting...
+
+  - No XSS Vulnerability Detected.
+
+=====
+
+Scanning Completed at 2025-02-06 03:25:46.291608
