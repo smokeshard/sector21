@@ -19,7 +19,8 @@ class DomainScanner:
 
     def __init__ (self, domain):
         self.domain = domain
-        self.scanResult = f"Scan Results for {domain}.txt"
+        domainSanitised = re.sub(r'[^a-zA-Z0-9-]', '_', domain)
+        self.scanResult = f"Scan Results for {domainSanitised}.txt"
         self.log(f"Scan for '{domain}' Started at {datetime.datetime.now()}\n\n=====")
 
     def portScanning(self):
@@ -225,6 +226,6 @@ class DomainScanner:
         self.log(f"\n=====\n\nScanning Completed at {datetime.datetime.now()}")
 
 if __name__ == "__main__":
-    domain = input("Enter Domain to Scan: ")
+    domain = input("\nEnter Domain to Scan: ")
     scanner = DomainScanner(domain)
     scanner.runScan()
