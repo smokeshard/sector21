@@ -1,3 +1,7 @@
+# Domain Vulnerability Scanner
+# Author: @smokeshard on Discord
+# ======================================================================================================================
+
 import datetime
 import http.client
 import re
@@ -55,7 +59,61 @@ class DomainScanner:
                         print(f"  - Port {port} is CLOSED")
                 except Exception as e:
                     self.log(f"  - Port {port} Scan Failed: {e}")
-                    
+
+    def checkDNSEnumeration(self):
+        self.log("\n[+] Performing DNS Enumeration...\n")
+        subdomains = [
+            "www", "mail", "smtp", "imap", "pop3", "pop", "mxb", "aspmx", "mx", "alt", "inbound", "admin", "blog", 
+            "dev", "test", "staging", "backup", "api", "portal", "cms", "support", "cdn", "shop", "meet", "team", 
+            "learn", "promo", "store", "engage", "quote", "landing", "services", "hello", "try", "trial", "demo", 
+            "sales", "m", "ftp", "wiki", "webmail", "kb", "help", "stage", "app",
+        ]
+        enumr = False
+        for subdomain in subdomains:
+            domainFull = f"{subdomain}.{self.domain}"
+            try:
+                socket.setdefaulttimeout(3) 
+                IPAddress = socket.gethostbyname(domainFull)
+                self.log(f"  - Subdomain Found: {domainFull} -> {IPAddress}")
+                enumr = True
+            except (socket.gaierror, socket.timeout, socket.error) as e:
+                continue
+            except Exception as e:
+                self.log(f"  - DNS Enumeration Failed for {domainFull}: {e}")
+            if enumr == False:
+                print("  - No Common Subdomains Detected.")    
+
+    def checkDirectories(self):
+        self.log("\n[+] Checking for Directory Traversal Vulnerabilities...\n")
+        payloads = [
+            "../", "../../", "../../../", "../../../../", ".../", "%2e%2e%2f", "../" "..%2f", "..%252f", 
+            "..%c0%af", "..\\", "..\\..\\", "/etc/passwd", "C:\\Windows\\system32\\config\\SAM",
+        ]
+        patterns = [
+            "root:", "passwd", "windows", "system32", "etc/shadow", "boot.ini",
+        ]
+        directory = False
+        for payload in payloads:
+            try:
+                payloadEncoded = urllib.parse.quote(payload)
+                connection = http.client.HTTPConnection(self.domain)
+                connection.request("GET", f"/download?file={payloadEncoded}")
+                response = connection.getresponse()
+                content = response.read().decode(errors="ignore").lower()
+                connection.close()
+                for pattern in patterns:
+                    if pattern in content:
+                        self.log("  - Potential Directory Traversal Found!")
+                        self.log(f"    Payload: {payload}")
+                        self.log(f"    Pattern: {payload}")
+                        directory = True
+                if response.status in [200, 403, 500]:
+                    self.log(f"  - Suspicious Response for Payload: {payload} (Status Code {response.status})")
+                    directory = True
+            except Exception as e:
+                self.log(f"  - Directory Traversal Test Failed for Payload {payload}: {e}")
+        if directory == False:
+            print("  - No Obvious Directory Traversal Vulnerabilities Detected.")
 
     def checkSSL(self):
         self.log("\n[+] Checking SSL Certificate...\n")
@@ -73,20 +131,29 @@ class DomainScanner:
             self.log(f"  - SSL Check Failed: {e}")
     
     def checkHTTPHeaders(self):
-        self.log("\n[+] Checking HTTP Headers...\n")
+        self.log("\n[+] Checking HTTP(S) Headers...\n")
         if not self.checkPort(443):
-            self.log("  - Port 443 is CLOSED. Skipping HTTPS Headers Check.")
-            return
-        try:
-            connection = http.client.HTTPSConnection(self.domain)
-            connection.request("GET", "/")
-            response = connection.getresponse()
-            headers = response.getheaders()
-            connection.close()
-            for header, value in headers:
-                self.log(f"  - {header}: {value}")
-        except Exception as e:
-            self.log(f"  - HTTP Headers Check Failed: {e}")
+            try:
+                connection = http.client.HTTPConnection(self.domain)
+                connection.request("GET", "/")
+                response = connection.getresponse()
+                headers = response.getheaders()
+                connection.close()
+                for header, value in headers:
+                    self.log(f"  - {header}: {value}")
+            except Exception as e:
+                self.log(f"  - HTTP Headers Check Failed: {e}")
+        else:
+            try:
+                connection = http.client.HTTPSConnection(self.domain)
+                connection.request("GET", "/")
+                response = connection.getresponse()
+                headers = response.getheaders()
+                connection.close()
+                for header, value in headers:
+                    self.log(f"  - {header}: {value}")
+            except Exception as e:
+                self.log(f"  - HTTPS Headers Check Failed: {e}")
     
     def checkXSS(self):
         self.log("\n[+] Checking for Cross-site Scripting Vulnerabilities...\n")
@@ -127,12 +194,12 @@ class DomainScanner:
                     content = response.read().decode(errors="ignore")
                     connection.close()
                     if payload in content or payloadEncoded in content:
-                        self.log(f"  - Potential XSS (Reflected) Found!")
+                        self.log("  - Potential XSS (Reflected) Found!")
                         self.log(f"    Path: {path}")
                         self.log(f"    Method: {method}")
                         self.log(f"    Payload: {payload}")
                     if "alert" not in content and "XSS" in content:
-                        self.log(f"  - Potential Filter Bypass Found!")
+                        self.log("  - Potential Filter Bypass Found!")
                         self.log(f"    Path: {path}")
                         self.log(f"    Method: {method}")
                         self.log(f"    Payload: {payload}")
@@ -147,7 +214,7 @@ class DomainScanner:
                     self.log(f"    Method: {method}")
 
     def checkCSRF(self):
-        self.log(f"\n[+] Checking for Basic Cross-Site Request Forgery...\n")
+        self.log("\n[+] Checking for Basic Cross-Site Request Forgery...\n")
         try:
             connection = http.client.HTTPConnection(self.domain)
             connection.request("GET", "/")
@@ -208,55 +275,8 @@ class DomainScanner:
         if sql == False:
             self.log("  - No Obvious SQL Injection Vulnerabilities Detected.")
 
-    def checkDNSEnumeration(self):
-        self.log("\n[+] Performing DNS Enumeration...\n")
-        subdomains = [
-            "www", "mail", "smtp", "imap", "pop3", "pop", "mxb", "aspmx", "mx", "alt", "inbound", "admin", "blog", 
-            "dev", "test", "staging", "backup", "api", "portal", "cms", "support", "cdn", "shop", "meet", "team", 
-            "learn", "promo", "store", "engage", "quote", "landing", "services", "hello", "try", "trial", "demo", 
-            "sales", "m", "ftp", "wiki", "webmail", "kb", "help", "stage", "app",
-        ]
-        for subdomain in subdomains:
-            domainFull = f"{subdomain}.{self.domain}"
-            try:
-                socket.setdefaulttimeout(3) 
-                IPAddress = socket.gethostbyname(domainFull)
-                self.log(f"  - Subdomain Found: {domainFull} -> {IPAddress}")
-            except (socket.gaierror, socket.timeout, socket.error):
-                print(f"  - DNS Enumeration Failed for {domainFull}: {e}")
-                continue
-            except Exception as e:
-                self.log(f"  - DNS Enumeration Failed for {domainFull}: {e}")
-
-    def checkDirectories(self):
-        self.log("\n[+] Checking for Directory Traversal Vulnerabilities...\n")
-        payloads = [
-            "../", "../../", "../../../", "../../../../", ".../", "%2e%2e%2f", "../" "..%2f", "..%252f", 
-            "..%c0%af", "..\\", "..\\..\\", "/etc/passwd", "C:\\Windows\\system32\\config\\SAM",
-        ]
-        patterns = [
-            "root:", "passwd", "windows", "system32", "etc/shadow", "boot.ini",
-        ]
-        for payload in payloads:
-            try:
-                payloadEncoded = urllib.parse.quote(payload)
-                connection = http.client.HTTPConnection(self.domain)
-                connection.request("GET", f"/download?file={payloadEncoded}")
-                response = connection.getresponse()
-                content = response.read().decode(errors="ignore").lower()
-                connection.close()
-                for pattern in patterns:
-                    if pattern in content:
-                        self.log(f"  - Potential Directory Traversal Found!")
-                        self.log(f"    Payload: {payload}")
-                        self.log(f"    Pattern: {payload}")
-                if response.status in [200, 403, 500]:
-                    self.log(f"  - Suspicious Response for Payload: {payload} (Status Code {response.status})")
-            except Exception as e:
-                self.log(f"  - Directory Traversal Test Failed for Payload {payload}: {e}")
-
     def runScan(self):
-#       self.portScanning()
+        self.portScanning()
         self.checkDNSEnumeration()
         self.checkDirectories()
         self.checkSSL()
