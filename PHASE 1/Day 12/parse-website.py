@@ -1,3 +1,7 @@
+# Basic OSINT Scraping Script
+# Author: @smokeshard on Discord
+# ======================================================================================================================
+
 import http.client
 import re
 import urllib.parse

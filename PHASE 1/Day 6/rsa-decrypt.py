@@ -1,3 +1,7 @@
+# Rivest-Shamir-Adleman Algorithm Text File Decryption Script (to be used with rsa-encrypt.py)
+# Author: @smokeshard on Discord
+# ======================================================================================================================
+
 import os
 
 def parsePrivateKey(filePrivateKey):

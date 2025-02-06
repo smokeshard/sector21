@@ -1,3 +1,7 @@
+# Rivest-Shamir-Adleman Algorithm Text File Encryption Script (to be used with rsa-decrypt.py)
+# Author: @smokeshard on Discord
+# ======================================================================================================================
+
 import os
 import random
 
