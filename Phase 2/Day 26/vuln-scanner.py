@@ -91,24 +91,13 @@ class DomainScanner:
     def checkXSS(self):
         self.log("\n[+] Checking for Cross-site Scripting Vulnerabilities...\n")
         payloads = [
-            "<script>alert('XSS')</script>",
-            "<img src=x onerror=alert('XSS')>",
-            "<svg onload=alert('XSS')>",
-            "javascript:alert('XSS')",
-            "&#106;&#97;&#118;&#97;&#115;&#99;&#114;&#105;&#112;&#116;&#58;&#97;&#108;&#101;&#114;&#116;&#40;&#39;&#88;&#83;&#83;&#39;&#41;",
-            base64.b64encode("<script>alert('XSS')</script>".encode()).decode(),
-            "<ScRiPt>alert('XSS')</ScRiPt>",
-            "<SCRIPT>alert('XSS');</SCRIPT>",
-            "<scr<script>ipt>alert('XSS')</scr</script>ipt>",
-            "' onmouseover='alert('XSS')",
-            "\" onmouseover=\"alert('XSS')",
-            "' onfocus='alert('XSS')",
-            "\"><iframe src=\"javascript:alert('XSS')\">",
-            "\"><video><source onerror=\"alert('XSS')\">",
-            "';alert('XSS')//",
-            "\";alert('XSS')//",
+            "<script>alert('XSS')</script>", "<img src=x onerror=alert('XSS')>", "<svg onload=alert('XSS')>",
+            "javascript:alert('XSS')", base64.b64encode("<script>alert('XSS')</script>".encode()).decode(),
+            "<ScRiPt>alert('XSS')</ScRiPt>", "<SCRIPT>alert('XSS');</SCRIPT>", 
+            "<scr<script>ipt>alert('XSS')</scr</script>ipt>", "' onmouseover='alert('XSS')",
+            "\" onmouseover=\"alert('XSS')", "' onfocus='alert('XSS')", "\"><iframe src=\"javascript:alert('XSS')\">",
+            "\"><video><source onerror=\"alert('XSS')\">", "';alert('XSS')//", "\";alert('XSS')//",
             "><script>alert(String.fromCharCode(88,83,83))</script>",
-            "javascript:/*-/*`/*\`/*'/*\"/**/(/* */onerror=alert('XSS') )//%0D%0A%0d%0a//</stYle/</titLe/</teXtarEa/</scRipt/--!>\\x3csVg/<sVg/oNloAd=alert('XSS')//>\x3e"
         ]
         contexts = [
             ("/?q={}", "GET"),
@@ -117,16 +106,11 @@ class DomainScanner:
             ("/comment?text={}", "POST")
         ]
         patterns = [
-            "customAlert",
-            "sanitize",
-            "escapeHTML",
-            "innerHTML",
-            "document.write"
+            "customAlert", "sanitize", "escapeHTML", "innerHTML", "document.write",
         ]
-        headers = {
-            "User-Agent": "Mozilla/5.0",
-            "Content-Type": "application/x-www-form-urlencoded",
-            "X-Requested-With": "XMLHttpRequest"
+        headers = { 
+            "User-Agent": "Mozilla/5.0", "Content-Type": "application/x-www-form-urlencoded",
+            "X-Requested-With": "XMLHttpRequest",
         }
         for payload in payloads:
             for template, method in contexts:
@@ -143,14 +127,24 @@ class DomainScanner:
                     content = response.read().decode(errors="ignore")
                     connection.close()
                     if payload in content or payloadEncoded in content:
-                        self.log(f"  - Potential XSS (Reflected) Found!\n    Path: {path}\n    Method: {method}\n    Payload: {payload}")
+                        self.log(f"  - Potential XSS (Reflected) Found!")
+                        self.log(f"    Path: {path}")
+                        self.log(f"    Method: {method}")
+                        self.log(f"    Payload: {payload}")
                     if "alert" not in content and "XSS" in content:
-                        self.log(f"  - Potential Filter Bypass Found!\n    Path: {path}\n    Method: {method}\n    Payload: {payload}")
+                        self.log(f"  - Potential Filter Bypass Found!")
+                        self.log(f"    Path: {path}")
+                        self.log(f"    Method: {method}")
+                        self.log(f"    Payload: {payload}")
                     for pattern in patterns:
                         if pattern in content:
-                            self.log(f"  - Suspicious Pattern Found: {pattern}\n    Path: {path}\n    Method: {method}")
+                            self.log(f"  - Suspicious Pattern Found: {pattern}")
+                            self.log(f"    Path: {path}")
+                            self.log(f"    Method: {method}")
                 except Exception as e:
-                    self.log(f"  - XSS Test Failed: {e}\n    Path: {path}\n    Method: {method}")
+                    self.log(f"  - XSS Test Failed: {e}")
+                    self.log(f"    Path: {path}")
+                    self.log(f"    Method: {method}")
 
     def checkCSRF(self):
         self.log(f"\n[+] Checking for Basic Cross-Site Request Forgery...\n")
@@ -187,23 +181,11 @@ class DomainScanner:
     def checkSQLInjection(self):
         self.log("\n[+] Checking for Basic SQL Injection Vulnerabilities...\n")
         payloads = [
-            "' OR '1'='1",
-            "1' OR '1'='1",
-            "1 OR 1=1",
-            "' --",
-            "1' --",
-            "' UNION SELECT NULL--",
-            "admin' --"
+            "' OR '1'='1", "1' OR '1'='1", "1 OR 1=1", "' --", "1' --", "' UNION SELECT NULL--", "admin' --",
         ]
         patterns = [
-            "sql",
-            "mysql",
-            "oracle",
-            "syntax error",
-            "postgresql",
-            "sqlite",
-            "database error"
-        ]
+            "sql", "mysql", "oracle", "syntax error", "postgresql", "sqlite", "database error",
+            ]
         for payload in payloads:
             try:
                 sql = False
@@ -216,7 +198,7 @@ class DomainScanner:
                 for pattern in patterns:
                     if pattern in content:
                         self.log(f"  - Potential SQL Injection Found with Payload: {payload}")
-                        self.log(f"  - Detected Database Error Pattern: {pattern}")
+                        self.log(f"    Database Error Pattern: {pattern}")
                         sql = True
                 if response.status == 500:
                     self.log(f"  - Potential SQL Injection Found! Server Error with Payload: {payload}")
@@ -226,9 +208,57 @@ class DomainScanner:
         if sql == False:
             self.log("  - No Obvious SQL Injection Vulnerabilities Detected.")
 
+    def checkDNSEnumeration(self):
+        self.log("\n[+] Performing DNS Enumeration...\n")
+        subdomains = [
+            "www", "mail", "smtp", "imap", "pop3", "pop", "mxb", "aspmx", "mx", "alt", "inbound", "admin", "blog", 
+            "dev", "test", "staging", "backup", "api", "portal", "cms", "support", "cdn", "shop", "meet", "team", 
+            "learn", "promo", "store", "engage", "quote", "landing", "services", "hello", "try", "trial", "demo", 
+            "sales", "m", "ftp", "wiki", "webmail", "kb", "help", "stage", "app",
+        ]
+        for subdomain in subdomains:
+            domainFull = f"{subdomain}.{self.domain}"
+            try:
+                socket.setdefaulttimeout(3) 
+                IPAddress = socket.gethostbyname(domainFull)
+                self.log(f"  - Subdomain Found: {domainFull} -> {IPAddress}")
+            except (socket.gaierror, socket.timeout, socket.error):
+                print(f"  - DNS Enumeration Failed for {domainFull}: {e}")
+                continue
+            except Exception as e:
+                self.log(f"  - DNS Enumeration Failed for {domainFull}: {e}")
+
+    def checkDirectories(self):
+        self.log("\n[+] Checking for Directory Traversal Vulnerabilities...\n")
+        payloads = [
+            "../", "../../", "../../../", "../../../../", ".../", "%2e%2e%2f", "../" "..%2f", "..%252f", 
+            "..%c0%af", "..\\", "..\\..\\", "/etc/passwd", "C:\\Windows\\system32\\config\\SAM",
+        ]
+        patterns = [
+            "root:", "passwd", "windows", "system32", "etc/shadow", "boot.ini",
+        ]
+        for payload in payloads:
+            try:
+                payloadEncoded = urllib.parse.quote(payload)
+                connection = http.client.HTTPConnection(self.domain)
+                connection.request("GET", f"/download?file={payloadEncoded}")
+                response = connection.getresponse()
+                content = response.read().decode(errors="ignore").lower()
+                connection.close()
+                for pattern in patterns:
+                    if pattern in content:
+                        self.log(f"  - Potential Directory Traversal Found!")
+                        self.log(f"    Payload: {payload}")
+                        self.log(f"    Pattern: {payload}")
+                if response.status in [200, 403, 500]:
+                    self.log(f"  - Suspicious Response for Payload: {payload} (Status Code {response.status})")
+            except Exception as e:
+                self.log(f"  - Directory Traversal Test Failed for Payload {payload}: {e}")
 
     def runScan(self):
-        self.portScanning()
+#       self.portScanning()
+        self.checkDNSEnumeration()
+        self.checkDirectories()
         self.checkSSL()
         self.checkHTTPHeaders()
         self.checkXSS()
