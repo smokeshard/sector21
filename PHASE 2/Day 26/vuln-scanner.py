@@ -30,7 +30,7 @@ class DomainScanner:
         domain = domain.split('/')[0]
         domain = domain.split(':')[0]
         self.domain = domain
-        domainSanitised = re.sub(r'[^a-zA-Z0-9-]', '_', domain)
+        domainSanitised = re.sub(r'[^a-zA-Z0-9-]', '.', domain)
         self.scanResult = f"Scan Results for {domainSanitised}.txt"
         self.log(f"Scan for '{domain}' Started at {datetime.datetime.now()}\n\n=====")
 

